@@ -1,1 +1,3 @@
-__all__: list[str] = []
+from app.models.product import Product
+
+__all__ = ["Product"]
