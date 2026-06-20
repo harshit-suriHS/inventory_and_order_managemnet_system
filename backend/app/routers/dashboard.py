@@ -1,0 +1,13 @@
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+
+from app.core.database import get_db
+from app.schemas.dashboard import DashboardRead
+from app.services.dashboard_service import DashboardService
+
+router = APIRouter(prefix="/dashboard", tags=["dashboard"])
+
+
+@router.get("", response_model=DashboardRead)
+def get_dashboard(db: Session = Depends(get_db)) -> object:
+    return DashboardService(db).summary()

@@ -1,3 +1,4 @@
+import os
 from collections.abc import Generator
 
 import pytest
@@ -9,6 +10,7 @@ from testcontainers.postgres import PostgresContainer
 
 from alembic import command
 from alembic.config import Config
+from app.core.config import get_settings
 from app.core.database import get_db
 from app.main import app
 
@@ -21,10 +23,16 @@ def pg_engine() -> Generator[Engine, None, None]:
         config.set_main_option("sqlalchemy.url", url)
         command.upgrade(config, "head")
         engine = create_engine(url)
+        # Seed get_settings cache with the testcontainer URL so direct callers work.
+        os.environ["DATABASE_URL"] = url
+        get_settings.cache_clear()
+        get_settings()
         try:
             yield engine
         finally:
             engine.dispose()
+            get_settings.cache_clear()
+            os.environ.pop("DATABASE_URL", None)
 
 
 @pytest.fixture()
