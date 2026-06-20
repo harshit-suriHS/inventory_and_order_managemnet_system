@@ -8,3 +8,7 @@ class NotFoundError(DomainError):
 
 class ConflictError(DomainError):
     """Request violates a uniqueness or state constraint."""
+
+
+class InsufficientStockError(DomainError):
+    """Not enough stock to satisfy an order."""

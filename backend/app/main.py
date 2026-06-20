@@ -2,8 +2,8 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.exceptions import ConflictError, NotFoundError
-from app.routers import customers, products
+from app.exceptions import ConflictError, InsufficientStockError, NotFoundError
+from app.routers import customers, orders, products
 
 app = FastAPI(title="Inventory & Order Management System")
 
@@ -25,6 +25,11 @@ def handle_conflict(_: Request, exc: ConflictError) -> JSONResponse:
     return JSONResponse(status_code=409, content={"detail": str(exc)})
 
 
+@app.exception_handler(InsufficientStockError)
+def handle_insufficient_stock(_: Request, exc: InsufficientStockError) -> JSONResponse:
+    return JSONResponse(status_code=409, content={"detail": str(exc)})
+
+
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
@@ -32,3 +37,4 @@ def health() -> dict[str, str]:
 
 app.include_router(products.router)
 app.include_router(customers.router)
+app.include_router(orders.router)
