@@ -1,5 +1,6 @@
 import os
 from collections.abc import Generator
+from urllib.parse import urlparse
 
 import pytest
 from fastapi.testclient import TestClient
@@ -14,6 +15,8 @@ from app.core.config import get_settings
 from app.core.database import get_db
 from app.main import app
 
+_PG_ENV = ("POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_HOST", "POSTGRES_PORT", "POSTGRES_DB")
+
 
 @pytest.fixture(scope="session")
 def pg_engine() -> Generator[Engine, None, None]:
@@ -23,8 +26,14 @@ def pg_engine() -> Generator[Engine, None, None]:
         config.set_main_option("sqlalchemy.url", url)
         command.upgrade(config, "head")
         engine = create_engine(url)
-        # Seed get_settings cache with the testcontainer URL so direct callers work.
-        os.environ["DATABASE_URL"] = url
+        # Point get_settings at the testcontainer so direct callers (e.g. the
+        # dashboard service) build the same connection string the engine uses.
+        parsed = urlparse(url)
+        os.environ["POSTGRES_USER"] = parsed.username or ""
+        os.environ["POSTGRES_PASSWORD"] = parsed.password or ""
+        os.environ["POSTGRES_HOST"] = parsed.hostname or ""
+        os.environ["POSTGRES_PORT"] = str(parsed.port or 5432)
+        os.environ["POSTGRES_DB"] = parsed.path.lstrip("/")
         get_settings.cache_clear()
         get_settings()
         try:
@@ -32,7 +41,8 @@ def pg_engine() -> Generator[Engine, None, None]:
         finally:
             engine.dispose()
             get_settings.cache_clear()
-            os.environ.pop("DATABASE_URL", None)
+            for key in _PG_ENV:
+                os.environ.pop(key, None)
 
 
 @pytest.fixture()
