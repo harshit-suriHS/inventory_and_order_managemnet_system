@@ -3,6 +3,8 @@ databases:
     databaseName: inventory
     user: inventory
     plan: free
+    # Empty allow list => no public access; only Render-internal connections.
+    ipAllowList: []
 
 services:
   - type: web
@@ -35,3 +37,6 @@ services:
           property: database
       - key: LOW_STOCK_THRESHOLD
         value: "10"
+      # Set the actual frontend origin in the Render dashboard (not committed).
+      - key: CORS_ORIGINS
+        sync: false

@@ -1,3 +1,5 @@
+import os
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -5,11 +7,18 @@ from fastapi.responses import JSONResponse
 from app.exceptions import ConflictError, InsufficientStockError, NotFoundError
 from app.routers import customers, dashboard, orders, products
 
+# Allowed browser origins, comma-separated; defaults to the local dev frontend.
+cors_origins = [
+    origin.strip()
+    for origin in os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",")
+    if origin.strip()
+]
+
 app = FastAPI(title="Inventory & Order Management System")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=cors_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
