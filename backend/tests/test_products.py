@@ -87,7 +87,18 @@ def test_update_to_duplicate_sku_conflicts(client: TestClient) -> None:
     assert response.status_code == 409
 
 
-def test_delete_product(client: TestClient) -> None:
+def test_delete_archives_product(client: TestClient) -> None:
     created = client.post("/products", json=_payload()).json()
+    assert created["status"] == "active"
     assert client.delete(f"/products/{created['id']}").status_code == 204
-    assert client.get(f"/products/{created['id']}").status_code == 404
+    fetched = client.get(f"/products/{created['id']}")
+    assert fetched.status_code == 200  # archived, not removed
+    assert fetched.json()["status"] == "archived"
+
+
+def test_restore_product_via_put(client: TestClient) -> None:
+    created = client.post("/products", json=_payload()).json()
+    client.delete(f"/products/{created['id']}")
+    restored = client.put(f"/products/{created['id']}", json=_payload(status="active"))
+    assert restored.status_code == 200
+    assert restored.json()["status"] == "active"

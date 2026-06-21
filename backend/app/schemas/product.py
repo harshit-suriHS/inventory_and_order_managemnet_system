@@ -1,5 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -16,6 +17,7 @@ class ProductUpdate(BaseModel):
     sku: str = Field(min_length=1, max_length=100)
     price: Decimal = Field(ge=0, max_digits=10, decimal_places=2)
     quantity: int = Field(ge=0)
+    status: Literal["active", "archived"] | None = None
 
 
 class ProductRead(BaseModel):
@@ -26,4 +28,5 @@ class ProductRead(BaseModel):
     sku: str
     price: Decimal
     quantity: int
+    status: str
     created_at: datetime

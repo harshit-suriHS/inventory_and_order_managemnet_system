@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from app.exceptions import ConflictError, NotFoundError
 from app.models.customer import Customer
 from app.repositories.customer_repository import CustomerRepository
-from app.schemas.customer import CustomerCreate
+from app.schemas.customer import CustomerCreate, CustomerUpdate
 
 
 class CustomerService:
@@ -31,7 +31,18 @@ class CustomerService:
         self.db.refresh(customer)
         return customer
 
+    def update(self, customer_id: int, data: CustomerUpdate) -> Customer:
+        customer = self.get(customer_id)
+        existing = self.repo.get_by_email(data.email)
+        if existing is not None and existing.id != customer_id:
+            raise ConflictError(f"Email '{data.email}' already exists")
+        for field, value in data.model_dump(exclude_none=True).items():
+            setattr(customer, field, value)
+        self.db.commit()
+        self.db.refresh(customer)
+        return customer
+
     def delete(self, customer_id: int) -> None:
         customer = self.get(customer_id)
-        self.repo.delete(customer)
+        customer.status = "archived"
         self.db.commit()

@@ -14,12 +14,13 @@ class OrderRepository:
     def count(self) -> int:
         return int(self.db.scalar(select(func.count()).select_from(Order)) or 0)
 
+    def count_active(self) -> int:
+        stmt = select(func.count()).select_from(Order).where(Order.status == "active")
+        return int(self.db.scalar(stmt) or 0)
+
     def get(self, order_id: int) -> Order | None:
         return self.db.get(Order, order_id)
 
     def add(self, order: Order) -> Order:
         self.db.add(order)
         return order
-
-    def delete(self, order: Order) -> None:
-        self.db.delete(order)

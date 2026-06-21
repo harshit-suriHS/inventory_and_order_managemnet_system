@@ -36,7 +36,7 @@ class ProductService:
         existing = self.repo.get_by_sku(data.sku)
         if existing is not None and existing.id != product_id:
             raise ConflictError(f"SKU '{data.sku}' already exists")
-        for field, value in data.model_dump().items():
+        for field, value in data.model_dump(exclude_none=True).items():
             setattr(product, field, value)
         self.db.commit()
         self.db.refresh(product)
@@ -44,5 +44,5 @@ class ProductService:
 
     def delete(self, product_id: int) -> None:
         product = self.get(product_id)
-        self.repo.delete(product)
+        product.status = "archived"
         self.db.commit()

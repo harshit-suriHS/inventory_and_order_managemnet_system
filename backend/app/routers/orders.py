@@ -34,5 +34,5 @@ def create_order(data: OrderCreate, db: Session = Depends(get_db)) -> object:
 
 
 @router.delete("/{order_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_order(order_id: int, db: Session = Depends(get_db)) -> None:
-    OrderService(db).delete(order_id)
+def cancel_order(order_id: int, db: Session = Depends(get_db)) -> None:
+    OrderService(db).cancel(order_id)

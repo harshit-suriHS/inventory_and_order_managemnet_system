@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.dependencies import Pagination, pagination_params
-from app.schemas.customer import CustomerCreate, CustomerRead
+from app.schemas.customer import CustomerCreate, CustomerRead, CustomerUpdate
 from app.schemas.pagination import Page
 from app.services.customer_service import CustomerService
 
@@ -31,6 +31,13 @@ def get_customer(customer_id: int, db: Session = Depends(get_db)) -> object:
 @router.post("", response_model=CustomerRead, status_code=status.HTTP_201_CREATED)
 def create_customer(data: CustomerCreate, db: Session = Depends(get_db)) -> object:
     return CustomerService(db).create(data)
+
+
+@router.put("/{customer_id}", response_model=CustomerRead)
+def update_customer(
+    customer_id: int, data: CustomerUpdate, db: Session = Depends(get_db)
+) -> object:
+    return CustomerService(db).update(customer_id, data)
 
 
 @router.delete("/{customer_id}", status_code=status.HTTP_204_NO_CONTENT)

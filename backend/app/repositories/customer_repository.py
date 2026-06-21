@@ -15,6 +15,10 @@ class CustomerRepository:
     def count(self) -> int:
         return int(self.db.scalar(select(func.count()).select_from(Customer)) or 0)
 
+    def count_active(self) -> int:
+        stmt = select(func.count()).select_from(Customer).where(Customer.status == "active")
+        return int(self.db.scalar(stmt) or 0)
+
     def get(self, customer_id: int) -> Customer | None:
         return self.db.get(Customer, customer_id)
 
@@ -24,6 +28,3 @@ class CustomerRepository:
     def add(self, customer: Customer) -> Customer:
         self.db.add(customer)
         return customer
-
-    def delete(self, customer: Customer) -> None:
-        self.db.delete(customer)

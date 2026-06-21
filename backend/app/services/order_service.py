@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
-from app.exceptions import InsufficientStockError, NotFoundError
+from app.exceptions import ConflictError, InsufficientStockError, NotFoundError
 from app.models.order import Order, OrderItem
 from app.models.product import Product
 from app.repositories.customer_repository import CustomerRepository
@@ -34,6 +34,8 @@ class OrderService:
         customer = self.customers.get(data.customer_id)
         if customer is None:
             raise NotFoundError(f"Customer {data.customer_id} not found")
+        if customer.status == "archived":
+            raise ConflictError(f"Customer {data.customer_id} is archived")
 
         # Resolve products and accumulate cumulative demand per product_id so
         # that duplicate lines are validated against their combined quantity.
@@ -44,6 +46,8 @@ class OrderService:
                 product = self.products.get(line.product_id)
                 if product is None:
                     raise NotFoundError(f"Product {line.product_id} not found")
+                if product.status == "archived":
+                    raise ConflictError(f"Product {line.product_id} is archived")
                 products[line.product_id] = product
                 cumulative_demand[line.product_id] = 0
             cumulative_demand[line.product_id] += line.quantity
@@ -81,7 +85,14 @@ class OrderService:
         self.db.refresh(order)
         return order
 
-    def delete(self, order_id: int) -> None:
+    def cancel(self, order_id: int) -> Order:
         order = self.get(order_id)
-        self.orders.delete(order)
+        if order.status == "cancelled":
+            raise ConflictError(f"Order {order_id} is already cancelled")
+        # Return each line's quantity to stock, then mark the order cancelled.
+        for item in order.items:
+            item.product.quantity += item.quantity
+        order.status = "cancelled"
         self.db.commit()
+        self.db.refresh(order)
+        return order

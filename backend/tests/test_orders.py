@@ -144,13 +144,53 @@ def test_order_includes_nested_product_and_customer(client: TestClient) -> None:
     assert item["unit_price"] == "10.00"
 
 
-def test_get_and_delete_order(client: TestClient) -> None:
+def test_cancel_order_restocks_and_marks_cancelled(client: TestClient) -> None:
+    customer = _make_customer(client)
+    product = _make_product(client, "A", "10.00", 5)
+    created = client.post(
+        "/orders",
+        json={"customer_id": customer, "items": [{"product_id": product, "quantity": 2}]},
+    ).json()
+    assert created["status"] == "active"
+    assert client.get(f"/products/{product}").json()["quantity"] == 3  # decremented
+
+    assert client.delete(f"/orders/{created['id']}").status_code == 204
+    fetched = client.get(f"/orders/{created['id']}")
+    assert fetched.status_code == 200  # order kept as a record
+    assert fetched.json()["status"] == "cancelled"
+    assert client.get(f"/products/{product}").json()["quantity"] == 5  # restocked
+
+
+def test_cancel_already_cancelled_rejected(client: TestClient) -> None:
     customer = _make_customer(client)
     product = _make_product(client, "A", "10.00", 5)
     created = client.post(
         "/orders",
         json={"customer_id": customer, "items": [{"product_id": product, "quantity": 1}]},
     ).json()
-    assert client.get(f"/orders/{created['id']}").status_code == 200
     assert client.delete(f"/orders/{created['id']}").status_code == 204
-    assert client.get(f"/orders/{created['id']}").status_code == 404
+    assert client.delete(f"/orders/{created['id']}").status_code == 409
+    assert client.get(f"/products/{product}").json()["quantity"] == 5  # not double-restocked
+
+
+def test_cannot_order_archived_product(client: TestClient) -> None:
+    customer = _make_customer(client)
+    product = _make_product(client, "A", "10.00", 5)
+    client.delete(f"/products/{product}")  # archive
+    response = client.post(
+        "/orders",
+        json={"customer_id": customer, "items": [{"product_id": product, "quantity": 1}]},
+    )
+    assert response.status_code == 409
+    assert client.get(f"/products/{product}").json()["quantity"] == 5  # untouched
+
+
+def test_cannot_order_archived_customer(client: TestClient) -> None:
+    customer = _make_customer(client)
+    product = _make_product(client, "A", "10.00", 5)
+    client.delete(f"/customers/{customer}")  # archive
+    response = client.post(
+        "/orders",
+        json={"customer_id": customer, "items": [{"product_id": product, "quantity": 1}]},
+    )
+    assert response.status_code == 409

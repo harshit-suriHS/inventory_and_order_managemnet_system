@@ -45,6 +45,7 @@ class OrderSummaryRead(BaseModel):
 
     id: int
     total_amount: Decimal
+    status: str
     created_at: datetime
     customer: CustomerSummary
 

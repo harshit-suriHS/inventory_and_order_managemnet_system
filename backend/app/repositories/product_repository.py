@@ -1,3 +1,5 @@
+from collections.abc import Sequence
+
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -15,6 +17,18 @@ class ProductRepository:
     def count(self) -> int:
         return int(self.db.scalar(select(func.count()).select_from(Product)) or 0)
 
+    def count_active(self) -> int:
+        stmt = select(func.count()).select_from(Product).where(Product.status == "active")
+        return int(self.db.scalar(stmt) or 0)
+
+    def list_low_stock(self, threshold: int) -> Sequence[Product]:
+        stmt = (
+            select(Product)
+            .where(Product.status == "active", Product.quantity < threshold)
+            .order_by(Product.quantity)
+        )
+        return list(self.db.scalars(stmt))
+
     def get(self, product_id: int) -> Product | None:
         return self.db.get(Product, product_id)
 
@@ -24,6 +38,3 @@ class ProductRepository:
     def add(self, product: Product) -> Product:
         self.db.add(product)
         return product
-
-    def delete(self, product: Product) -> None:
-        self.db.delete(product)

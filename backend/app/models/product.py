@@ -12,6 +12,7 @@ class Product(Base):
     __table_args__ = (
         CheckConstraint("quantity >= 0", name="ck_product_quantity_non_negative"),
         CheckConstraint("price >= 0", name="ck_product_price_non_negative"),
+        CheckConstraint("status in ('active', 'archived')", name="ck_product_status"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -19,6 +20,7 @@ class Product(Base):
     sku: Mapped[str] = mapped_column(String(100), unique=True, index=True)
     price: Mapped[Decimal] = mapped_column(Numeric(10, 2))
     quantity: Mapped[int] = mapped_column(default=0)
+    status: Mapped[str] = mapped_column(String(20), default="active", server_default="active")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

@@ -38,7 +38,34 @@ def test_get_missing_customer(client: TestClient) -> None:
     assert client.get("/customers/999").status_code == 404
 
 
-def test_delete_customer(client: TestClient) -> None:
+def test_update_customer(client: TestClient) -> None:
     created = client.post("/customers", json=_payload()).json()
+    response = client.put(
+        f"/customers/{created['id']}", json=_payload(full_name="Grace Hopper")
+    )
+    assert response.status_code == 200
+    assert response.json()["full_name"] == "Grace Hopper"
+
+
+def test_update_to_duplicate_email_conflicts(client: TestClient) -> None:
+    client.post("/customers", json=_payload(email="a@e.com"))
+    other = client.post("/customers", json=_payload(email="b@e.com")).json()
+    response = client.put(f"/customers/{other['id']}", json=_payload(email="a@e.com"))
+    assert response.status_code == 409
+
+
+def test_delete_archives_customer(client: TestClient) -> None:
+    created = client.post("/customers", json=_payload()).json()
+    assert created["status"] == "active"
     assert client.delete(f"/customers/{created['id']}").status_code == 204
-    assert client.get(f"/customers/{created['id']}").status_code == 404
+    fetched = client.get(f"/customers/{created['id']}")
+    assert fetched.status_code == 200  # archived, not removed
+    assert fetched.json()["status"] == "archived"
+
+
+def test_restore_customer_via_put(client: TestClient) -> None:
+    created = client.post("/customers", json=_payload()).json()
+    client.delete(f"/customers/{created['id']}")
+    restored = client.put(f"/customers/{created['id']}", json=_payload(status="active"))
+    assert restored.status_code == 200
+    assert restored.json()["status"] == "active"
