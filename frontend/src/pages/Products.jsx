@@ -4,6 +4,7 @@ import DataTable from '../components/common/DataTable.jsx'
 import Modal from '../components/common/Modal.jsx'
 import Pagination from '../components/common/Pagination.jsx'
 import Spinner from '../components/common/Spinner.jsx'
+import StatusBadge from '../components/common/StatusBadge.jsx'
 import Toast from '../components/common/Toast.jsx'
 import ProductForm from '../components/products/ProductForm.jsx'
 import useProducts from '../hooks/useProducts.js'
@@ -29,14 +30,30 @@ export default function Products() {
     }
   }
 
-  const remove = async (product) => {
-    if (!window.confirm(`Delete ${product.name}?`)) return
+  const archive = async (product) => {
+    if (!window.confirm(`Archive ${product.name}?`)) return
     try {
       await productsApi.remove(product.id)
       await reload()
-      notify('Product deleted')
-    } catch {
-      notify('Delete failed', 'error')
+      notify('Product archived')
+    } catch (err) {
+      notify(err.response?.data?.detail || 'Archive failed', 'error')
+    }
+  }
+
+  const restore = async (product) => {
+    try {
+      await productsApi.update(product.id, {
+        name: product.name,
+        sku: product.sku,
+        price: String(product.price),
+        quantity: product.quantity,
+        status: 'active',
+      })
+      await reload()
+      notify('Product restored')
+    } catch (err) {
+      notify(err.response?.data?.detail || 'Restore failed', 'error')
     }
   }
 
@@ -45,6 +62,7 @@ export default function Products() {
     { key: 'sku', header: 'SKU' },
     { key: 'price', header: 'Price' },
     { key: 'quantity', header: 'Stock' },
+    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} /> },
     {
       key: 'actions',
       header: '',
@@ -53,7 +71,11 @@ export default function Products() {
           <button className="text-slate-600" onClick={() => { setEditing(row); setOpen(true) }}>
             Edit
           </button>
-          <button className="text-red-600" onClick={() => remove(row)}>Delete</button>
+          {row.status === 'archived' ? (
+            <button className="text-emerald-600" onClick={() => restore(row)}>Restore</button>
+          ) : (
+            <button className="text-red-600" onClick={() => archive(row)}>Archive</button>
+          )}
         </div>
       ),
     },

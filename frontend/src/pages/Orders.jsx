@@ -7,6 +7,7 @@ import DataTable from '../components/common/DataTable.jsx'
 import Modal from '../components/common/Modal.jsx'
 import Pagination from '../components/common/Pagination.jsx'
 import Spinner from '../components/common/Spinner.jsx'
+import StatusBadge from '../components/common/StatusBadge.jsx'
 import Toast from '../components/common/Toast.jsx'
 import OrderForm from '../components/orders/OrderForm.jsx'
 import useOrders from '../hooks/useOrders.js'
@@ -26,8 +27,9 @@ export default function Orders() {
       productsApi.list({ limit: 100, offset: 0 }),
       customersApi.list({ limit: 100, offset: 0 }),
     ])
-    setFormProducts(pd.items)
-    setFormCustomers(cd.items)
+    // Only active customers/products can be used on a new order.
+    setFormProducts(pd.items.filter((p) => p.status === 'active'))
+    setFormCustomers(cd.items.filter((c) => c.status === 'active'))
   }
 
   useEffect(() => {
@@ -45,17 +47,34 @@ export default function Orders() {
     }
   }
 
+  const cancel = async (order) => {
+    if (!window.confirm(`Cancel order #${order.id}? Stock will be restored.`)) return
+    try {
+      await ordersApi.remove(order.id)
+      await Promise.all([reload(), loadFormOptions()])
+      notify('Order cancelled')
+    } catch (err) {
+      notify(err.response?.data?.detail || 'Cancel failed', 'error')
+    }
+  }
+
   const columns = [
     { key: 'id', header: 'Order #' },
     { key: 'customer', header: 'Customer', render: (row) => row.customer.full_name },
     { key: 'total_amount', header: 'Total' },
+    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} /> },
     {
       key: 'actions',
       header: '',
       render: (row) => (
-        <button className="text-slate-600" onClick={() => navigate(`/orders/${row.id}`)}>
-          View
-        </button>
+        <div className="flex gap-3">
+          <button className="text-slate-600" onClick={() => navigate(`/orders/${row.id}`)}>
+            View
+          </button>
+          {row.status === 'active' && (
+            <button className="text-red-600" onClick={() => cancel(row)}>Cancel</button>
+          )}
+        </div>
       ),
     },
   ]

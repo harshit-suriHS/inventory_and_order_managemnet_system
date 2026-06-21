@@ -4,6 +4,7 @@ import DataTable from '../components/common/DataTable.jsx'
 import Modal from '../components/common/Modal.jsx'
 import Pagination from '../components/common/Pagination.jsx'
 import Spinner from '../components/common/Spinner.jsx'
+import StatusBadge from '../components/common/StatusBadge.jsx'
 import Toast from '../components/common/Toast.jsx'
 import CustomerForm from '../components/customers/CustomerForm.jsx'
 import useCustomers from '../hooks/useCustomers.js'
@@ -26,14 +27,29 @@ export default function Customers() {
     }
   }
 
-  const remove = async (customer) => {
-    if (!window.confirm(`Delete ${customer.full_name}?`)) return
+  const archive = async (customer) => {
+    if (!window.confirm(`Archive ${customer.full_name}?`)) return
     try {
       await customersApi.remove(customer.id)
       await reload()
-      notify('Customer deleted')
-    } catch {
-      notify('Delete failed', 'error')
+      notify('Customer archived')
+    } catch (err) {
+      notify(err.response?.data?.detail || 'Archive failed', 'error')
+    }
+  }
+
+  const restore = async (customer) => {
+    try {
+      await customersApi.update(customer.id, {
+        full_name: customer.full_name,
+        email: customer.email,
+        phone: customer.phone,
+        status: 'active',
+      })
+      await reload()
+      notify('Customer restored')
+    } catch (err) {
+      notify(err.response?.data?.detail || 'Restore failed', 'error')
     }
   }
 
@@ -41,12 +57,16 @@ export default function Customers() {
     { key: 'full_name', header: 'Name' },
     { key: 'email', header: 'Email' },
     { key: 'phone', header: 'Phone' },
+    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} /> },
     {
       key: 'actions',
       header: '',
-      render: (row) => (
-        <button className="text-red-600" onClick={() => remove(row)}>Delete</button>
-      ),
+      render: (row) =>
+        row.status === 'archived' ? (
+          <button className="text-emerald-600" onClick={() => restore(row)}>Restore</button>
+        ) : (
+          <button className="text-red-600" onClick={() => archive(row)}>Archive</button>
+        ),
     },
   ]
 
