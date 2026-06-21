@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import ordersApi from '../api/orders.js'
 import DataTable from '../components/common/DataTable.jsx'
 import Spinner from '../components/common/Spinner.jsx'
@@ -30,6 +30,9 @@ export default function OrderDetail() {
 
   return (
     <div className="space-y-4">
+      <Link to="/orders" className="text-sm text-slate-600 hover:text-slate-900">
+        ← Back to orders
+      </Link>
       <h2 className="text-xl font-semibold">Order #{order.id}</h2>
       <p className="text-slate-600">Customer: {order.customer.full_name}</p>
       <DataTable columns={columns} rows={order.items} empty="No items." />
