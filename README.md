@@ -14,10 +14,18 @@ dashboard summarizes the business at a glance.
 ## Features
 
 - **Products** — full CRUD; unique SKU; non-negative price and quantity.
-- **Customers** — create, list, delete; unique email.
+- **Customers** — create, list, update; unique email.
 - **Orders** — multi-line orders; stock validated and decremented in a single transaction
   (insufficient stock is rejected with no side effects); total computed by the backend.
-- **Dashboard** — totals for products, customers, orders, plus low-stock products.
+- **Status lifecycle (soft delete)** — nothing is ever hard-deleted:
+  - `DELETE /products/{id}` and `DELETE /customers/{id}` **archive** the record
+    (`status: active → archived`); it stays for history and is restored via `PUT`
+    (`status: active`). Archived products/customers cannot be used on new orders.
+  - `DELETE /orders/{id}` **cancels** the order (`status: active → cancelled`) and
+    **restocks** the inventory it consumed. Cancellation is terminal — re-cancelling
+    returns `409`.
+- **Dashboard** — totals for **active** products, customers, and orders, plus low-stock
+  products (archived products and cancelled orders are excluded).
 - **Pagination** — all list endpoints are paginated (`limit`/`offset`, envelope response).
 
 ## Architecture
@@ -121,17 +129,18 @@ envelope: `{ "items": [...], "total": N, "limit": L, "offset": O }`.
 | GET    | `/products`       | List products (paginated)                    |
 | POST   | `/products`       | Create a product                             |
 | GET    | `/products/{id}`  | Get a product                                |
-| PUT    | `/products/{id}`  | Update a product                             |
-| DELETE | `/products/{id}`  | Delete a product                             |
+| PUT    | `/products/{id}`  | Update a product (also restore via `status`) |
+| DELETE | `/products/{id}`  | Archive a product (soft delete)              |
 | GET    | `/customers`      | List customers (paginated)                   |
 | POST   | `/customers`      | Create a customer                            |
 | GET    | `/customers/{id}` | Get a customer                               |
-| DELETE | `/customers/{id}` | Delete a customer                            |
+| PUT    | `/customers/{id}` | Update a customer (also restore via `status`)|
+| DELETE | `/customers/{id}` | Archive a customer (soft delete)             |
 | GET    | `/orders`         | List orders, summary shape (paginated)       |
 | POST   | `/orders`         | Create an order                              |
 | GET    | `/orders/{id}`    | Get an order with line items                 |
-| DELETE | `/orders/{id}`    | Delete an order                              |
-| GET    | `/dashboard`      | Totals + low-stock products                  |
+| DELETE | `/orders/{id}`    | Cancel an order (restocks inventory)         |
+| GET    | `/dashboard`      | Active totals + low-stock products           |
 
 Create an order with:
 
@@ -144,7 +153,7 @@ product's price may change later):
 
 ```json
 {
-  "id": 1, "total_amount": "69.97", "created_at": "...",
+  "id": 1, "total_amount": "69.97", "status": "active", "created_at": "...",
   "customer": { "id": 1, "full_name": "Ada Lovelace" },
   "items": [
     { "id": 1, "quantity": 2, "unit_price": "9.99",
