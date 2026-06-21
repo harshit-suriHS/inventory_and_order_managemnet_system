@@ -28,7 +28,8 @@ class OrderService:
         return order
 
     def create(self, data: OrderCreate) -> Order:
-        if self.customers.get(data.customer_id) is None:
+        customer = self.customers.get(data.customer_id)
+        if customer is None:
             raise NotFoundError(f"Customer {data.customer_id} not found")
 
         # Resolve products and accumulate cumulative demand per product_id so
@@ -58,13 +59,13 @@ class OrderService:
             products[product_id].quantity -= total_qty
 
         # Build one OrderItem per input line; total is sum over all lines.
-        order = Order(customer_id=data.customer_id)
+        order = Order(customer=customer)
         total = Decimal("0")
         for line in data.items:
             product = products[line.product_id]
             order.items.append(
                 OrderItem(
-                    product_id=product.id,
+                    product=product,
                     quantity=line.quantity,
                     unit_price=product.price,
                 )

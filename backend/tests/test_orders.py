@@ -128,6 +128,22 @@ def test_duplicate_product_lines_within_stock_succeed(client: TestClient) -> Non
     assert client.get(f"/products/{product}").json()["quantity"] == 5  # 10 - 5
 
 
+def test_order_includes_nested_product_and_customer(client: TestClient) -> None:
+    customer = _make_customer(client)
+    product = _make_product(client, "A", "10.00", 5)
+    created = client.post(
+        "/orders",
+        json={"customer_id": customer, "items": [{"product_id": product, "quantity": 2}]},
+    ).json()
+
+    detail = client.get(f"/orders/{created['id']}").json()
+    assert detail["customer"] == {"id": customer, "full_name": "Ada"}
+    item = detail["items"][0]
+    assert item["product"] == {"id": product, "name": "A", "sku": "A"}
+    assert item["quantity"] == 2
+    assert item["unit_price"] == "10.00"
+
+
 def test_get_and_delete_order(client: TestClient) -> None:
     customer = _make_customer(client)
     product = _make_product(client, "A", "10.00", 5)
