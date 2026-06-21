@@ -11,8 +11,11 @@ class CustomerService:
         self.db = db
         self.repo = CustomerRepository(db)
 
-    def list_all(self) -> list[Customer]:
-        return self.repo.list()
+    def list(self, limit: int, offset: int) -> list[Customer]:
+        return self.repo.list(limit, offset)
+
+    def count(self) -> int:
+        return self.repo.count()
 
     def get(self, customer_id: int) -> Customer:
         customer = self.repo.get(customer_id)

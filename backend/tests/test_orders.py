@@ -63,7 +63,7 @@ def test_insufficient_stock_rejected_without_side_effects(client: TestClient) ->
     )
     assert response.status_code == 409
     assert client.get(f"/products/{p1}").json()["quantity"] == 5  # unchanged
-    assert client.get("/orders").json() == []
+    assert client.get("/orders").json()["items"] == []
 
 
 def test_order_for_missing_customer(client: TestClient) -> None:
@@ -105,7 +105,7 @@ def test_duplicate_product_lines_exceeding_stock_rejected(client: TestClient) ->
     )
     assert response.status_code == 409
     assert client.get(f"/products/{product}").json()["quantity"] == 4  # unchanged
-    assert client.get("/orders").json() == []
+    assert client.get("/orders").json()["items"] == []
 
 
 def test_duplicate_product_lines_within_stock_succeed(client: TestClient) -> None:

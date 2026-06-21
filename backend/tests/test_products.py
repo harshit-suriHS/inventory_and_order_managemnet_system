@@ -36,7 +36,35 @@ def test_list_products(client: TestClient) -> None:
     client.post("/products", json=_payload(sku="WID-2"))
     response = client.get("/products")
     assert response.status_code == 200
-    assert len(response.json()) == 2
+    body = response.json()
+    assert body["total"] == 2
+    assert len(body["items"]) == 2
+
+
+def test_list_products_pagination(client: TestClient) -> None:
+    client.post("/products", json=_payload(sku="WID-1"))
+    client.post("/products", json=_payload(sku="WID-2"))
+    client.post("/products", json=_payload(sku="WID-3"))
+
+    response = client.get("/products?limit=2&offset=0")
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body["items"]) == 2
+    assert body["total"] == 3
+    assert body["limit"] == 2
+    assert body["offset"] == 0
+
+    response = client.get("/products?limit=2&offset=2")
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body["items"]) == 1
+    assert body["total"] == 3
+    assert body["offset"] == 2
+
+
+def test_list_limit_validation(client: TestClient) -> None:
+    assert client.get("/products?limit=0").status_code == 422
+    assert client.get("/products?limit=101").status_code == 422
 
 
 def test_get_missing_product(client: TestClient) -> None:

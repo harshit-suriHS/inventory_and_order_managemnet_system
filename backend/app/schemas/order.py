@@ -38,11 +38,18 @@ class OrderItemRead(BaseModel):
     product: ProductSummary
 
 
-class OrderRead(BaseModel):
+class OrderSummaryRead(BaseModel):
+    """Lightweight shape for the order list (no line items)."""
+
     model_config = ConfigDict(from_attributes=True)
 
     id: int
     total_amount: Decimal
     created_at: datetime
     customer: CustomerSummary
+
+
+class OrderRead(OrderSummaryRead):
+    """Full order detail, including line items."""
+
     items: list[OrderItemRead]

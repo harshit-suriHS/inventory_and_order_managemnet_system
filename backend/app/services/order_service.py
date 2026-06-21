@@ -18,8 +18,11 @@ class OrderService:
         self.products = ProductRepository(db)
         self.customers = CustomerRepository(db)
 
-    def list_all(self) -> list[Order]:
-        return self.orders.list()
+    def list(self, limit: int, offset: int) -> list[Order]:
+        return self.orders.list(limit, offset)
+
+    def count(self) -> int:
+        return self.orders.count()
 
     def get(self, order_id: int) -> Order:
         order = self.orders.get(order_id)

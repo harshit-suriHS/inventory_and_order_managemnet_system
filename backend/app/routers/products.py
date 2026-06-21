@@ -2,15 +2,25 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.dependencies import Pagination, pagination_params
+from app.schemas.pagination import Page
 from app.schemas.product import ProductCreate, ProductRead, ProductUpdate
 from app.services.product_service import ProductService
 
 router = APIRouter(prefix="/products", tags=["products"])
 
 
-@router.get("", response_model=list[ProductRead])
-def list_products(db: Session = Depends(get_db)) -> object:
-    return ProductService(db).list_all()
+@router.get("", response_model=Page[ProductRead])
+def list_products(
+    pagination: Pagination = Depends(pagination_params), db: Session = Depends(get_db)
+) -> object:
+    service = ProductService(db)
+    return Page(
+        items=service.list(pagination.limit, pagination.offset),
+        total=service.count(),
+        limit=pagination.limit,
+        offset=pagination.offset,
+    )
 
 
 @router.get("/{product_id}", response_model=ProductRead)

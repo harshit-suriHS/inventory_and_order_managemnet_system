@@ -26,7 +26,11 @@ def test_invalid_email_rejected(client: TestClient) -> None:
 
 def test_list_and_get_customer(client: TestClient) -> None:
     created = client.post("/customers", json=_payload()).json()
-    assert client.get("/customers").status_code == 200
+    list_response = client.get("/customers")
+    assert list_response.status_code == 200
+    body = list_response.json()
+    assert body["total"] == 1
+    assert len(body["items"]) == 1
     assert client.get(f"/customers/{created['id']}").json()["id"] == created["id"]
 
 

@@ -2,15 +2,25 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.dependencies import Pagination, pagination_params
 from app.schemas.customer import CustomerCreate, CustomerRead
+from app.schemas.pagination import Page
 from app.services.customer_service import CustomerService
 
 router = APIRouter(prefix="/customers", tags=["customers"])
 
 
-@router.get("", response_model=list[CustomerRead])
-def list_customers(db: Session = Depends(get_db)) -> object:
-    return CustomerService(db).list_all()
+@router.get("", response_model=Page[CustomerRead])
+def list_customers(
+    pagination: Pagination = Depends(pagination_params), db: Session = Depends(get_db)
+) -> object:
+    service = CustomerService(db)
+    return Page(
+        items=service.list(pagination.limit, pagination.offset),
+        total=service.count(),
+        limit=pagination.limit,
+        offset=pagination.offset,
+    )
 
 
 @router.get("/{customer_id}", response_model=CustomerRead)

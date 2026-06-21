@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models.customer import Customer
@@ -8,8 +8,12 @@ class CustomerRepository:
     def __init__(self, db: Session) -> None:
         self.db = db
 
-    def list(self) -> list[Customer]:
-        return list(self.db.scalars(select(Customer).order_by(Customer.id)))
+    def list(self, limit: int, offset: int) -> list[Customer]:
+        stmt = select(Customer).order_by(Customer.id).limit(limit).offset(offset)
+        return list(self.db.scalars(stmt))
+
+    def count(self) -> int:
+        return int(self.db.scalar(select(func.count()).select_from(Customer)) or 0)
 
     def get(self, customer_id: int) -> Customer | None:
         return self.db.get(Customer, customer_id)

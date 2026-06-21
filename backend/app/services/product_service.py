@@ -11,8 +11,11 @@ class ProductService:
         self.db = db
         self.repo = ProductRepository(db)
 
-    def list_all(self) -> list[Product]:
-        return self.repo.list()
+    def list(self, limit: int, offset: int) -> list[Product]:
+        return self.repo.list(limit, offset)
+
+    def count(self) -> int:
+        return self.repo.count()
 
     def get(self, product_id: int) -> Product:
         product = self.repo.get(product_id)
