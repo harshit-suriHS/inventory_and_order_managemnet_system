@@ -2,13 +2,14 @@ import { useState } from 'react'
 import customersApi from '../api/customers.js'
 import DataTable from '../components/common/DataTable.jsx'
 import Modal from '../components/common/Modal.jsx'
+import Pagination from '../components/common/Pagination.jsx'
 import Spinner from '../components/common/Spinner.jsx'
 import Toast from '../components/common/Toast.jsx'
 import CustomerForm from '../components/customers/CustomerForm.jsx'
 import useCustomers from '../hooks/useCustomers.js'
 
 export default function Customers() {
-  const { customers, loading, error, reload } = useCustomers()
+  const { customers, total, limit, offset, setOffset, loading, error, reload } = useCustomers()
   const [open, setOpen] = useState(false)
   const [toast, setToast] = useState(null)
 
@@ -61,6 +62,7 @@ export default function Customers() {
         </button>
       </div>
       <DataTable columns={columns} rows={customers} empty="No customers yet." />
+      <Pagination total={total} limit={limit} offset={offset} onChange={setOffset} />
       <Modal open={open} title="Add customer" onClose={() => setOpen(false)}>
         <CustomerForm onSubmit={save} onCancel={() => setOpen(false)} />
       </Modal>

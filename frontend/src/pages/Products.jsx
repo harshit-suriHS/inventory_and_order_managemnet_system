@@ -2,13 +2,14 @@ import { useState } from 'react'
 import productsApi from '../api/products.js'
 import DataTable from '../components/common/DataTable.jsx'
 import Modal from '../components/common/Modal.jsx'
+import Pagination from '../components/common/Pagination.jsx'
 import Spinner from '../components/common/Spinner.jsx'
 import Toast from '../components/common/Toast.jsx'
 import ProductForm from '../components/products/ProductForm.jsx'
 import useProducts from '../hooks/useProducts.js'
 
 export default function Products() {
-  const { products, loading, error, reload } = useProducts()
+  const { products, total, limit, offset, setOffset, loading, error, reload } = useProducts()
   const [editing, setEditing] = useState(null)
   const [open, setOpen] = useState(false)
   const [toast, setToast] = useState(null)
@@ -73,6 +74,7 @@ export default function Products() {
         </button>
       </div>
       <DataTable columns={columns} rows={products} empty="No products yet." />
+      <Pagination total={total} limit={limit} offset={offset} onChange={setOffset} />
       <Modal open={open} title={editing ? 'Edit product' : 'Add product'} onClose={() => setOpen(false)}>
         <ProductForm
           initial={editing && { ...editing, price: String(editing.price), quantity: String(editing.quantity) }}

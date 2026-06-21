@@ -1,30 +1,44 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import customersApi from '../api/customers.js'
 import ordersApi from '../api/orders.js'
+import productsApi from '../api/products.js'
 import DataTable from '../components/common/DataTable.jsx'
 import Modal from '../components/common/Modal.jsx'
+import Pagination from '../components/common/Pagination.jsx'
 import Spinner from '../components/common/Spinner.jsx'
 import Toast from '../components/common/Toast.jsx'
 import OrderForm from '../components/orders/OrderForm.jsx'
-import useCustomers from '../hooks/useCustomers.js'
 import useOrders from '../hooks/useOrders.js'
-import useProducts from '../hooks/useProducts.js'
 
 export default function Orders() {
-  const { orders, loading, error, reload } = useOrders()
-  const { customers } = useCustomers()
-  const { products, reload: reloadProducts } = useProducts()
+  const { orders, total, limit, offset, setOffset, loading, error, reload } = useOrders()
   const [open, setOpen] = useState(false)
   const [toast, setToast] = useState(null)
+  const [formProducts, setFormProducts] = useState([])
+  const [formCustomers, setFormCustomers] = useState([])
   const navigate = useNavigate()
 
   const notify = (message, type = 'success') => setToast({ message, type })
+
+  const loadFormOptions = async () => {
+    const [pd, cd] = await Promise.all([
+      productsApi.list({ limit: 100, offset: 0 }),
+      customersApi.list({ limit: 100, offset: 0 }),
+    ])
+    setFormProducts(pd.items)
+    setFormCustomers(cd.items)
+  }
+
+  useEffect(() => {
+    loadFormOptions()
+  }, [])
 
   const save = async (data) => {
     try {
       await ordersApi.create(data)
       setOpen(false)
-      await Promise.all([reload(), reloadProducts()])
+      await Promise.all([reload(), loadFormOptions()])
       notify('Order created')
     } catch (err) {
       notify(err.response?.data?.detail || 'Order failed', 'error')
@@ -33,7 +47,7 @@ export default function Orders() {
 
   const columns = [
     { key: 'id', header: 'Order #' },
-    { key: 'customer_id', header: 'Customer' },
+    { key: 'customer', header: 'Customer', render: (row) => row.customer.full_name },
     { key: 'total_amount', header: 'Total' },
     {
       key: 'actions',
@@ -58,10 +72,11 @@ export default function Orders() {
         </button>
       </div>
       <DataTable columns={columns} rows={orders} empty="No orders yet." />
+      <Pagination total={total} limit={limit} offset={offset} onChange={setOffset} />
       <Modal open={open} title="Create order" onClose={() => setOpen(false)}>
         <OrderForm
-          customers={customers}
-          products={products}
+          customers={formCustomers}
+          products={formProducts}
           onSubmit={save}
           onCancel={() => setOpen(false)}
         />
